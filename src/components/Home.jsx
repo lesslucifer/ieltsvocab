@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import './Home.css';
 import {
   getWordOfTheDay,
@@ -27,11 +27,15 @@ const Home = ({ vocabulary, userStats, onNavigate }) => {
     }
   }, [vocabulary]);
 
-  const getStatusCount = (status) => {
-    return vocabulary.filter(word => word.status === status).length;
-  };
+  // Memoize expensive calculations
+  const statusCounts = useMemo(() => ({
+    mastered: vocabulary.filter(word => word.status === 'mastered').length,
+    learning: vocabulary.filter(word => word.status === 'learning').length,
+    struggling: vocabulary.filter(word => word.status === 'struggling').length
+  }), [vocabulary]);
 
-  const getRecentActivity = () => {
+  // Memoize recent activity calculation
+  const recentActivity = useMemo(() => {
     return vocabulary
       .filter(word => word.lastReviewed)
       .sort((a, b) => new Date(b.lastReviewed) - new Date(a.lastReviewed))
@@ -57,20 +61,21 @@ const Home = ({ vocabulary, userStats, onNavigate }) => {
 
         return { ...word, timeAgo };
       });
-  };
+  }, [vocabulary]);
 
-  const getGreeting = () => {
+  // Memoize greeting calculation
+  const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
-  };
+  }, []);
 
   return (
     <div className="home">
       <div className="home-header">
         <div className="header-left">
-          <h1 className="greeting">{getGreeting()}, learner</h1>
+          <h1 className="greeting">{greeting}, learner</h1>
           <p className="subgreeting">Keep up your learning streak!</p>
         </div>
         <div className="streak-badge">
@@ -153,7 +158,7 @@ const Home = ({ vocabulary, userStats, onNavigate }) => {
       <div className="recent-activity">
         <h2>Recent Activity</h2>
         <div className="activity-list card">
-          {getRecentActivity().map((word, index, array) => (
+          {recentActivity.map((word, index, array) => (
             <div key={word.id}>
               <div className="activity-item">
                 <div className="activity-word">

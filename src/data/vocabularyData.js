@@ -8,9 +8,9 @@ import {
   incrementDailyProgress,
   calculateStreak
 } from '../utils/storage';
-import ieltsVocabularyDatabase from './ieltsVocabulary';
+import ieltsVocabularyDatabase from './ieltsVocabularyComplete';
 
-// Use comprehensive IELTS vocabulary database
+// Use comprehensive IELTS vocabulary database (1000 words)
 export const defaultVocabulary = ieltsVocabularyDatabase;
 
 // Initialize vocabulary in localStorage

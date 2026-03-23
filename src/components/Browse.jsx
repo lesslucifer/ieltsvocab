@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import './Browse.css';
 import { updateWordStatus, incrementReviewCount } from '../data/hybridDataService';
 
@@ -15,8 +15,8 @@ const Browse = ({ vocabulary, refreshVocabulary }) => {
   // Display 15 words per page
   const wordsPerPage = 15;
 
-  // Text-to-speech function
-  const speakWord = (word) => {
+  // Text-to-speech function - memoized
+  const speakWord = useCallback((word) => {
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
@@ -26,39 +26,39 @@ const Browse = ({ vocabulary, refreshVocabulary }) => {
     utterance.pitch = 1;
     utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
-  };
+  }, []);
 
-  // Open flashcard modal
-  const handleWordClick = (word) => {
+  // Open flashcard modal - memoized
+  const handleWordClick = useCallback((word) => {
     setSelectedWord(word);
     setIsFlipped(false);
-  };
+  }, []);
 
-  // Close flashcard modal
-  const handleCloseModal = () => {
+  // Close flashcard modal - memoized
+  const handleCloseModal = useCallback(() => {
     setSelectedWord(null);
     setIsFlipped(false);
-  };
+  }, []);
 
-  // Handle "I Knew It" in modal
-  const handleKnewIt = async () => {
+  // Handle "I Knew It" in modal - memoized
+  const handleKnewIt = useCallback(async () => {
     if (!selectedWord) return;
     await updateWordStatus(selectedWord.id, 'mastered');
     await incrementReviewCount(selectedWord.id);
     await refreshVocabulary();
     handleCloseModal();
-  };
+  }, [selectedWord, refreshVocabulary, handleCloseModal]);
 
-  // Handle "Study Again" in modal
-  const handleStudyAgain = async () => {
+  // Handle "Study Again" in modal - memoized
+  const handleStudyAgain = useCallback(async () => {
     if (!selectedWord) return;
     await updateWordStatus(selectedWord.id, 'learning');
     await incrementReviewCount(selectedWord.id);
     await refreshVocabulary();
     handleCloseModal();
-  };
+  }, [selectedWord, refreshVocabulary, handleCloseModal]);
 
-  const filters = [
+  const filters = useMemo(() => [
     { id: 'all', label: 'All' },
     { id: 'Education & Learning', label: 'Education' },
     { id: 'Environment & Climate', label: 'Environment' },
@@ -69,10 +69,10 @@ const Browse = ({ vocabulary, refreshVocabulary }) => {
     { id: '7.0', label: 'Band 7.0-7.5' },
     { id: '8.0', label: 'Band 8.0-8.5' },
     { id: '9.0', label: 'Band 9.0' }
-  ];
+  ], []);
 
-  // Calculate real album data from vocabulary
-  const getAlbumData = (category = null, bandLevel = null) => {
+  // Calculate real album data from vocabulary - memoized for performance
+  const getAlbumData = useCallback((category = null, bandLevel = null) => {
     let words = vocabulary;
 
     if (category) {
@@ -86,134 +86,137 @@ const Browse = ({ vocabulary, refreshVocabulary }) => {
     const learnedPercentage = totalWords > 0 ? Math.round((masteredWords / totalWords) * 100) : 0;
 
     return { totalWords, learnedPercentage };
-  };
+  }, [vocabulary]);
 
-  const educationData = getAlbumData('Education & Learning');
-  const environmentData = getAlbumData('Environment & Climate');
-  const technologyData = getAlbumData('Technology & Digital Life');
-  const healthData = getAlbumData('Health & Lifestyle');
-  const businessData = getAlbumData('Work & Business');
-  const societyData = getAlbumData('Society & Community');
-  const travelData = getAlbumData('Travel & Globalization');
-  const scienceData = getAlbumData('Science & Innovation');
-  const mediaData = getAlbumData('Media & Communication');
-  const urbanData = getAlbumData('Urban Development');
-  const band60Data = getAlbumData(null, '6.0');
-  const band65Data = getAlbumData(null, '6.5');
-  const band70Data = getAlbumData(null, '7.0');
-  const band75Data = getAlbumData(null, '7.5');
-  const band80Data = getAlbumData(null, '8.0');
-  const band85Data = getAlbumData(null, '8.5');
-  const band90Data = getAlbumData(null, '9.0');
+  // Memoize album statistics calculations
+  const albumStats = useMemo(() => ({
+    education: getAlbumData('Education & Learning'),
+    environment: getAlbumData('Environment & Climate'),
+    technology: getAlbumData('Technology & Digital Life'),
+    health: getAlbumData('Health & Lifestyle'),
+    business: getAlbumData('Work & Business'),
+    society: getAlbumData('Society & Community'),
+    travel: getAlbumData('Travel & Globalization'),
+    science: getAlbumData('Science & Innovation'),
+    media: getAlbumData('Media & Communication'),
+    urban: getAlbumData('Urban Development'),
+    band60: getAlbumData(null, '6.0'),
+    band65: getAlbumData(null, '6.5'),
+    band70: getAlbumData(null, '7.0'),
+    band75: getAlbumData(null, '7.5'),
+    band80: getAlbumData(null, '8.0'),
+    band85: getAlbumData(null, '8.5'),
+    band90: getAlbumData(null, '9.0')
+  }), [getAlbumData]);
 
-  // Album/Category data with real statistics
-  const albums = [
+  // Album/Category data with real statistics - memoized
+  const albums = useMemo(() => [
     {
       id: 1,
       title: 'Education & Learning',
-      totalWords: educationData.totalWords,
+      totalWords: albumStats.education.totalWords,
       category: 'Education & Learning',
-      learnedPercentage: educationData.learnedPercentage
+      learnedPercentage: albumStats.education.learnedPercentage
     },
     {
       id: 2,
       title: 'Environment & Climate',
-      totalWords: environmentData.totalWords,
+      totalWords: albumStats.environment.totalWords,
       category: 'Environment & Climate',
-      learnedPercentage: environmentData.learnedPercentage
+      learnedPercentage: albumStats.environment.learnedPercentage
     },
     {
       id: 3,
       title: 'Technology & Digital Life',
-      totalWords: technologyData.totalWords,
+      totalWords: albumStats.technology.totalWords,
       category: 'Technology & Digital Life',
-      learnedPercentage: technologyData.learnedPercentage
+      learnedPercentage: albumStats.technology.learnedPercentage
     },
     {
       id: 4,
       title: 'Health & Lifestyle',
-      totalWords: healthData.totalWords,
+      totalWords: albumStats.health.totalWords,
       category: 'Health & Lifestyle',
-      learnedPercentage: healthData.learnedPercentage
+      learnedPercentage: albumStats.health.learnedPercentage
     },
     {
       id: 5,
       title: 'Work & Business',
-      totalWords: businessData.totalWords,
+      totalWords: albumStats.business.totalWords,
       category: 'Work & Business',
-      learnedPercentage: businessData.learnedPercentage
+      learnedPercentage: albumStats.business.learnedPercentage
     },
     {
       id: 6,
       title: 'Society & Community',
-      totalWords: societyData.totalWords,
+      totalWords: albumStats.society.totalWords,
       category: 'Society & Community',
-      learnedPercentage: societyData.learnedPercentage
+      learnedPercentage: albumStats.society.learnedPercentage
     },
     {
       id: 7,
       title: 'Travel & Globalization',
-      totalWords: travelData.totalWords,
+      totalWords: albumStats.travel.totalWords,
       category: 'Travel & Globalization',
-      learnedPercentage: travelData.learnedPercentage
+      learnedPercentage: albumStats.travel.learnedPercentage
     },
     {
       id: 8,
       title: 'Science & Innovation',
-      totalWords: scienceData.totalWords,
+      totalWords: albumStats.science.totalWords,
       category: 'Science & Innovation',
-      learnedPercentage: scienceData.learnedPercentage
+      learnedPercentage: albumStats.science.learnedPercentage
     },
     {
       id: 9,
       title: 'Media & Communication',
-      totalWords: mediaData.totalWords,
+      totalWords: albumStats.media.totalWords,
       category: 'Media & Communication',
-      learnedPercentage: mediaData.learnedPercentage
+      learnedPercentage: albumStats.media.learnedPercentage
     },
     {
       id: 10,
       title: 'Urban Development',
-      totalWords: urbanData.totalWords,
+      totalWords: albumStats.urban.totalWords,
       category: 'Urban Development',
-      learnedPercentage: urbanData.learnedPercentage
+      learnedPercentage: albumStats.urban.learnedPercentage
     },
     {
       id: 11,
       title: 'Band 6.0-6.5 (Basic)',
-      totalWords: band60Data.totalWords + band65Data.totalWords,
+      totalWords: albumStats.band60.totalWords + albumStats.band65.totalWords,
       bandLevel: '6.0',
       learnedPercentage: Math.round(
-        ((band60Data.totalWords * band60Data.learnedPercentage + band65Data.totalWords * band65Data.learnedPercentage) /
-        (band60Data.totalWords + band65Data.totalWords)) || 0
+        ((albumStats.band60.totalWords * albumStats.band60.learnedPercentage + albumStats.band65.totalWords * albumStats.band65.learnedPercentage) /
+        (albumStats.band60.totalWords + albumStats.band65.totalWords)) || 0
       )
     },
     {
       id: 12,
       title: 'Band 7.0-7.5 (Intermediate)',
-      totalWords: band70Data.totalWords + band75Data.totalWords,
+      totalWords: albumStats.band70.totalWords + albumStats.band75.totalWords,
       bandLevel: '7.0',
       learnedPercentage: Math.round(
-        ((band70Data.totalWords * band70Data.learnedPercentage + band75Data.totalWords * band75Data.learnedPercentage) /
-        (band70Data.totalWords + band75Data.totalWords)) || 0
+        ((albumStats.band70.totalWords * albumStats.band70.learnedPercentage + albumStats.band75.totalWords * albumStats.band75.learnedPercentage) /
+        (albumStats.band70.totalWords + albumStats.band75.totalWords)) || 0
       )
     },
     {
       id: 13,
       title: 'Band 8.0-8.5 (Advanced)',
-      totalWords: band80Data.totalWords + band85Data.totalWords,
+      totalWords: albumStats.band80.totalWords + albumStats.band85.totalWords,
       bandLevel: '8.0',
       learnedPercentage: Math.round(
-        ((band80Data.totalWords * band80Data.learnedPercentage + band85Data.totalWords * band85Data.learnedPercentage) /
-        (band80Data.totalWords + band85Data.totalWords)) || 0
+        ((albumStats.band80.totalWords * albumStats.band80.learnedPercentage + albumStats.band85.totalWords * albumStats.band85.learnedPercentage) /
+        (albumStats.band80.totalWords + albumStats.band85.totalWords)) || 0
       )
     },
     {
       id: 14,
       title: 'Band 9.0 (Expert)',
-      totalWords: band90Data.totalWords,
+      totalWords: albumStats.band90.totalWords,
       bandLevel: '9.0',
-      learnedPercentage: band90Data.learnedPercentage
+      learnedPercentage: albumStats.band90.learnedPercentage
     },
     {
       id: 15,
@@ -225,9 +228,10 @@ const Browse = ({ vocabulary, refreshVocabulary }) => {
         ? Math.round((vocabulary.filter(w => w.status === 'mastered').length / vocabulary.length) * 100)
         : 0
     }
-  ];
+  ], [albumStats, vocabulary]);
 
-  const filteredAlbums = albums.filter(album => {
+  // Memoize filtered albums for performance
+  const filteredAlbums = useMemo(() => albums.filter(album => {
     const matchesSearch = album.title.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (activeFilter === 'all') return matchesSearch;
@@ -254,64 +258,68 @@ const Browse = ({ vocabulary, refreshVocabulary }) => {
     }
 
     return matchesSearch;
-  });
+  }), [albums, searchTerm, activeFilter]);
 
-  const totalWords = albums.reduce((sum, album) => sum + album.totalWords, 0);
+  const totalWords = useMemo(() => vocabulary.length, [vocabulary]);
 
-  const handleAlbumClick = (album) => {
+  // Memoize click handlers
+  const handleAlbumClick = useCallback((album) => {
     setSelectedAlbum(album);
     setCurrentPage(1);
     setWordSearchTerm('');
     setStatusFilter('all');
-  };
+  }, []);
 
-  const handleBackToAlbums = () => {
+  const handleBackToAlbums = useCallback(() => {
     setSelectedAlbum(null);
     setCurrentPage(1);
-  };
+  }, []);
 
-  // Get words for selected album
-  const getAlbumWords = (album) => {
-    if (!album) return [];
+  // Get words for selected album - memoized
+  const albumWords = useMemo(() => {
+    if (!selectedAlbum) return [];
 
-    if (album.category) {
-      return vocabulary.filter(w => w.category === album.category);
-    } else if (album.bandLevel) {
+    if (selectedAlbum.category) {
+      return vocabulary.filter(w => w.category === selectedAlbum.category);
+    } else if (selectedAlbum.bandLevel) {
       // Handle band level ranges
-      if (album.bandLevel === '6.0') {
+      if (selectedAlbum.bandLevel === '6.0') {
         return vocabulary.filter(w => w.bandLevel === '6.0' || w.bandLevel === '6.5');
-      } else if (album.bandLevel === '7.0') {
+      } else if (selectedAlbum.bandLevel === '7.0') {
         return vocabulary.filter(w => w.bandLevel === '7.0' || w.bandLevel === '7.5');
-      } else if (album.bandLevel === '8.0') {
+      } else if (selectedAlbum.bandLevel === '8.0') {
         return vocabulary.filter(w => w.bandLevel === '8.0' || w.bandLevel === '8.5');
-      } else if (album.bandLevel === '9.0') {
+      } else if (selectedAlbum.bandLevel === '9.0') {
         return vocabulary.filter(w => w.bandLevel === '9.0');
       }
     }
 
     // "All Words" album
     return vocabulary;
-  };
+  }, [selectedAlbum, vocabulary]);
 
-  const albumWords = selectedAlbum ? getAlbumWords(selectedAlbum) : [];
+  // Memoize word filtering for performance with large datasets
+  const filteredWords = useMemo(() =>
+    albumWords.filter(word =>
+      word.word.toLowerCase().includes(wordSearchTerm.toLowerCase()) ||
+      word.definition.toLowerCase().includes(wordSearchTerm.toLowerCase())
+    ), [albumWords, wordSearchTerm]);
 
-  const filteredWords = albumWords.filter(word =>
-    word.word.toLowerCase().includes(wordSearchTerm.toLowerCase()) ||
-    word.definition.toLowerCase().includes(wordSearchTerm.toLowerCase())
-  );
-
-  const statusFilters = [
+  const statusFilters = useMemo(() => [
     { id: 'all', label: 'All' },
     { id: 'mastered', label: 'Mastered' },
     { id: 'learning', label: 'Learning' },
     { id: 'not-started', label: 'Not Started' }
-  ];
+  ], []);
 
-  const filteredByStatus = statusFilter === 'all'
-    ? filteredWords
-    : statusFilter === 'not-started'
-    ? filteredWords.filter(w => !w.status || w.status === 'struggling')
-    : filteredWords.filter(w => w.status === statusFilter);
+  // Memoize status filtering
+  const filteredByStatus = useMemo(() => {
+    if (statusFilter === 'all') return filteredWords;
+    if (statusFilter === 'not-started') {
+      return filteredWords.filter(w => !w.status || w.status === 'struggling');
+    }
+    return filteredWords.filter(w => w.status === statusFilter);
+  }, [filteredWords, statusFilter]);
 
   // If an album is selected, show the word list as table
   if (selectedAlbum) {

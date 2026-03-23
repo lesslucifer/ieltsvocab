@@ -47,13 +47,13 @@ export const getVocabulary = async () => {
     // Fallback to localStorage on error
     return localStorageService.loadVocabulary();
   } else {
-    // Load from localStorage, initialize if empty or outdated
+    // Load from localStorage, initialize only if empty
     let vocabulary = localStorageService.loadVocabulary();
     console.log('hybridDataService - Loaded from storage:', vocabulary?.length, 'words');
 
-    // Check if vocabulary is empty or has old structure (less than 1000 words)
-    if (!vocabulary || vocabulary.length < 1000) {
-      console.log('🔄 Initializing vocabulary with new 1000-word database...');
+    // Only initialize if vocabulary is completely empty
+    if (!vocabulary || vocabulary.length === 0) {
+      console.log('🔄 Initializing vocabulary database...');
       vocabulary = initializeVocabulary();
       console.log('✅ New vocabulary loaded:', vocabulary?.length, 'words');
     } else {
